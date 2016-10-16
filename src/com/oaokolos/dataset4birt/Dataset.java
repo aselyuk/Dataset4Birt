@@ -11,7 +11,10 @@ import java.util.logging.*;
  * @author rkievskiy
  */
 public class Dataset {
-    static final private String DRIVER_NAME = "com.extendedsystems.jdbc.advantage.ADSDriver";
+    // ADS
+    //static final private String DRIVER_NAME = "com.extendedsystems.jdbc.advantage.ADSDriver";
+    // PostgreSQL
+    static final private String DRIVER_NAME = "org.postgresql.Driver";
     
     static final private int NAVIGATION_NONE        = 0;
     static final private int NAVIGATION_FIRST       = 1;
@@ -145,12 +148,12 @@ public class Dataset {
         this.resultCount = 0;
         String query = this.prepareQuery(sql);
         try {
-            Statement statement = this.connection.createStatement();
+            Statement statement = this.connection.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_READ_ONLY);
             this.resultSet = statement.executeQuery(query);
             
             this.resultSet.last();
             this.resultCount = this.resultSet.getRow();
-            this.resultSet.beforeFirst();
+            this.resultSet.first();
             
             this.resultSetMetadata = this.resultSet.getMetaData();
         } catch (Exception error) {
@@ -241,7 +244,7 @@ public class Dataset {
         }
     }
     
-    public Field field(String fieldName) {
+    public Field field(String fieldName) throws SQLException {
         Object result = null;
         int fieldIndex = this.resultSet.findColumn(fieldName);
         
