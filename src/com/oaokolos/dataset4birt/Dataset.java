@@ -11,23 +11,25 @@ import java.util.logging.*;
  * @author rkievskiy
  */
 public class Dataset {
-    // ADS
-    //static final private String DRIVER_NAME = "com.extendedsystems.jdbc.advantage.ADSDriver";
-    // PostgreSQL
-    static final private String DRIVER_NAME = "org.postgresql.Driver";
-    
-    static final private int NAVIGATION_NONE        = 0;
-    static final private int NAVIGATION_FIRST       = 1;
-    static final private int NAVIGATION_LAST        = 2;
-    static final private int NAVIGATION_NEXT        = 3;
-    static final private int NAVIGATION_PREV        = 4;
-    static final private int NAVIGATION_IS_FIRST    = 5;
-    static final private int NAVIGATION_IS_LAST     = 6;
-    static final private int NAVIGATION_IS_CLOSE    = 7;
+    static final private String DRIVER_NAME = "com.extendedsystems.jdbc.advantage.ADSDriver";
+
+	private static final int NAVIGATION_NONE        = 0;
+    private static final int NAVIGATION_FIRST       = 1;
+    private static final int NAVIGATION_LAST        = 2;
+    private static final int NAVIGATION_NEXT        = 3;
+    private static final int NAVIGATION_PREV        = 4;
+    private static final int NAVIGATION_IS_FIRST    = 5;
+    private static final int NAVIGATION_IS_LAST     = 6;
+    private static final int NAVIGATION_IS_CLOSE    = 7;
     
     private boolean selfConnected = false;
     private Connection connection = null;
     private Driver driver = null;
+	
+	private String connectionString = "";
+	private String userName = "";
+	private String userPassword = "";
+	private String driverName = "";
     
     private SimpleDateFormat dateFormatter = null;
     
@@ -35,40 +37,57 @@ public class Dataset {
     
     private ResultSet resultSet = null;
     private ResultSetMetaData resultSetMetadata = null;
+	private Log log = null;
     private long resultCount = 0;
 
-    public Dataset(Connection connection) throws Exception {
-        if (connection != null) {
-            this.connection = connection;
-            this.init();
-        } else {
-            Exception error = new Exception("No connection passed");
-            throw error;
-        }
-    }
-    
-    // connection string: jdbc:extendedsystems:advantage://srv-a10:6262/y$/fabius/reflis/dict.add
     public Dataset(String connectionString, String user, String password) {
-        try {
-            this.driver = (Driver) Class.forName(Dataset.DRIVER_NAME).newInstance();
-            System.out.println("Got driver");
-            this.connection = DriverManager.getConnection(connectionString, user, password);
-            System.out.println("Connection establish");
-            
-            this.selfConnected = true;
-            this.init();
-        } catch (ClassNotFoundException error) {
-            System.out.println("ERROR! Can't load driver");
-            Logger.getLogger(Dataset.class.getName()).log(Level.SEVERE, error.getMessage());
-        } catch (InstantiationException | IllegalAccessException | SQLException error) {
-            System.out.println("ERROR! Can't establish connection");
-            Logger.getLogger(Dataset.class.getName()).log(Level.SEVERE, error.getMessage());
-        }
+        this.init(connectionString, user, password, this.DRIVER_NAME);
     }
-    
-    private void init() {
+	
+    public Dataset(String connectionString, String user, String password, String driverName) {
+        this.init(connectionString, user, password, driverName);
+    }
+	
+	private void init(String connectionString, String user, String password, String driverName) {
+		this.driverName = driverName;
+		this.connectionString = connectionString;
+		this.userName = user;
+		this.userPassword = password;
+		
         this.dateFormatter = new SimpleDateFormat("yyyy-MM-dd");
         this.params = new HashMap<String, String>();
+	}
+	
+	public void setLog(Log log) {
+		this.log = log;
+	}
+	
+	private void log(String message) {
+		if (this.log != null) {
+			this.log.debug(message);
+		} else {
+			System.out.println(message);
+            Logger.getLogger(Dataset.class.getName()).log(Level.SEVERE, message);
+		}
+	}
+    
+    public boolean connect() {
+		try {
+            this.driver = (Driver) Class.forName(this.driverName).newInstance();
+			this.log("Got driver");
+            this.connection = DriverManager.getConnection(this.connectionString, this.userName, this.userPassword);
+			this.log("Connection establish");
+            
+            this.selfConnected = true;
+        } catch (ClassNotFoundException error) {
+			this.log("ERROR! Can't load driver: " + error.getMessage());
+			return false;
+        } catch (InstantiationException | IllegalAccessException | SQLException error) {
+			this.log("ERROR! Can't establish connection: " + error.getMessage());
+			return false;
+        }
+		
+		return true;
     }
      
     private String prepareQuery(String sql) {
@@ -106,11 +125,10 @@ public class Dataset {
                     result = this.resultSet.isClosed();
                     break;
                 default:
-                    System.out.println("ERROR! Bad direction param: " + direction);
+					this.log("ERROR! Bad direction param: " + direction);
             }
         } catch (SQLException error) {
-            Logger.getLogger(Dataset.class.getName()).log(Level.SEVERE, null, error);
-            System.out.println("ERROR! Failed manipulate with result set. Direction: " + direction);
+			this.log("ERROR! Failed manipulate with result set. Direction: " + direction + "\n" + error.getMessage());
         }
     
         return result;
@@ -134,18 +152,17 @@ public class Dataset {
                 this.params.put(key, this.dateFormatter.format((Date) val));
             } else {
                 String message = "Bad paramater type: " + val.getClass().getName();
-                
                 Exception error = new Exception(message);
-                Logger.getLogger(Dataset.class.getName()).log(Level.SEVERE, null, error);
-                System.out.println("ERROR! " + message);
 
-                throw error;
+				this.log("ERROR! " + message + "\n" + error.getMessage());
+
+				throw error;
             }
         }
     }
     
     public boolean select(String sql) {
-        this.resultCount = 0;
+        this.clearResult();
         String query = this.prepareQuery(sql);
         try {
             Statement statement = this.connection.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_READ_ONLY);
@@ -153,12 +170,11 @@ public class Dataset {
             
             this.resultSet.last();
             this.resultCount = this.resultSet.getRow();
-            this.resultSet.first();
+			this.resultSet.beforeFirst();
             
             this.resultSetMetadata = this.resultSet.getMetaData();
         } catch (Exception error) {
-            Logger.getLogger(Dataset.class.getName()).log(Level.SEVERE, null, error);
-            System.out.println("ERROR! Failed to run query: " + query);
+			this.log("ERROR! Failed to run query: " + query + "\n" + error.getMessage());
 
             return false;
         }
@@ -167,7 +183,7 @@ public class Dataset {
     }
     
     public boolean execute(String sql) {
-        this.resultCount = 0;
+        this.clearResult();
         Statement statement = null;
         
         String query = this.prepareQuery(sql);
@@ -192,8 +208,7 @@ public class Dataset {
                 this.resultSet.close();
                 this.resultSetMetadata = null;
             } catch (SQLException ex) {
-                Logger.getLogger(Dataset.class.getName()).log(Level.SEVERE, null, ex);
-                System.out.println("ERROR! Failed to close ResultSet: " + ex.getMessage());
+				this.log("ERROR! Failed to close ResultSet: " + ex.getMessage());
             }
             this.resultSet = null;
         }

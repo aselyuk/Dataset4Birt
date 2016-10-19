@@ -38,10 +38,10 @@ public class Field {
             case java.sql.Types.DOUBLE: 		haveStr = "DOUBLE"; break;
             case java.sql.Types.FLOAT: 			haveStr = "FLOAT"; break;
             case java.sql.Types.INTEGER: 		haveStr = "INTEGER"; break;
-            case java.sql.Types.JAVA_OBJECT: 		haveStr = "JAVA_OBJECT"; break;
-            case java.sql.Types.LONGNVARCHAR: 		haveStr = "LONGNVARCHAR"; break;
-            case java.sql.Types.LONGVARBINARY: 		haveStr = "LONGVARBINARY"; break;
-            case java.sql.Types.LONGVARCHAR: 		haveStr = "LONGVARCHAR"; break;
+            case java.sql.Types.JAVA_OBJECT: 	haveStr = "JAVA_OBJECT"; break;
+            case java.sql.Types.LONGNVARCHAR: 	haveStr = "LONGNVARCHAR"; break;
+            case java.sql.Types.LONGVARBINARY: 	haveStr = "LONGVARBINARY"; break;
+            case java.sql.Types.LONGVARCHAR: 	haveStr = "LONGVARCHAR"; break;
             case java.sql.Types.NCHAR: 			haveStr = "NCHAR"; break;
             case java.sql.Types.NCLOB: 			haveStr = "NCLOB"; break;
             case java.sql.Types.NULL: 			haveStr = "NULL"; break;
@@ -50,7 +50,7 @@ public class Field {
             case java.sql.Types.OTHER: 			haveStr = "OTHER"; break;
             case java.sql.Types.REAL: 			haveStr = "REAL"; break;
             case java.sql.Types.REF: 			haveStr = "REF"; break;
-            case java.sql.Types.REF_CURSOR: 		haveStr = "REF_CURSOR"; break;
+            case java.sql.Types.REF_CURSOR: 	haveStr = "REF_CURSOR"; break;
             case java.sql.Types.ROWID: 			haveStr = "ROWID"; break;
             case java.sql.Types.SMALLINT: 		haveStr = "SMALLINT"; break;
             case java.sql.Types.SQLXML: 		haveStr = "SQLXML"; break;
